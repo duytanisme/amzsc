@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amzsc"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "bs4>=0.0.2",
+    "fake-useragent>=2.2.0",
+    "pandas>=2.3.1",
+    "requests>=2.32.4",
+    "selenium>=4.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "isort>=6.0.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--maxfail=1 --cov=testing_demo"
