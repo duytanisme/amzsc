@@ -3,17 +3,16 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
-import pandas as pd
 from fake_useragent import UserAgent
 
 from amzsc.modules.driver.driver_amazon import AmazonDriver
 from amzsc.modules.driver.driver_config import ChromeDriverConfig
 from amzsc.modules.proxy import get_proxy
-from amzsc.utils import Constants
 from amzsc.utils.file_worker import write_to_json
 from amzsc.utils.marketplace import get_zone
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def scrape_one(client: AmazonDriver, marketplace: str, asin: str) -> Dict[str, str]:
@@ -73,8 +72,10 @@ def scrape_all(
                 write_to_json(jsonl_output_path, row)
                 logger.debug("Thread %d: ASIN %s to JSONL file", thread_id, asin)
             data.append(row)
+
     except Exception as e:
         logger.error(str(e))
+
     finally:
         if client is not None:
             client.quit()
@@ -91,7 +92,6 @@ class AmazonScraper:
         batch_size: int = 10,
         thread_count: int = 10,
         jsonl_output_path: Optional[Path] = None,
-        logging_level: str = "DEBUG",
     ) -> None:
         """
         Initialize the AmazonScraper.
@@ -110,11 +110,9 @@ class AmazonScraper:
             thread_count: The number of threads to use in the process. Defaults to 10.
             jsonl_output_path: If parsed, append results in JSONL type in the parsed path.
                 Defaults to None.
-            logging_level: Logging level. Defaults to "DEBUG".
 
         Raises:
             ValueError: If `thread_count` is not a positive integer.
-            TypeError: If `logging_level` is not one of the predefined levels.
         """
         self.__proxy_key = proxy_key
         self.headless = headless
@@ -128,11 +126,6 @@ class AmazonScraper:
         # Set up output options
         self.jsonl_output_path = jsonl_output_path
 
-        # Configure logging
-        levels = Constants.LOGGING_LEVELS
-        if logging_level not in levels:
-            raise TypeError("logging_level must be one of: " + ", ".join(levels))
-        logger.setLevel(logging_level)
         logger.debug(
             "Initializing AmazonScraper with thread_count=%d, batch_size=%d"
             % (self.thread_count, self.batch_size),
@@ -147,7 +140,7 @@ class AmazonScraper:
         asins: List[str],
         marketplaces: Optional[List[str]] = None,
         marketplace: Optional[Literal["US", "UK", "DE", "FR", "ES", "IT"]] = None,
-    ) -> pd.DataFrame:
+    ) -> List[Dict[str, str]]:
         """
         Scrape product data from Amazon for a list of ASINs.
 
@@ -192,8 +185,8 @@ class AmazonScraper:
                 )
                 for i, chunk in enumerate(chunks)
             ]
-            results = []
+            results: List[Dict[str, str]] = []
             for future in futures:
                 results.extend(future.result())
-            df_output = pd.DataFrame(results)
-        return df_output
+
+        return results
